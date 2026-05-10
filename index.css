@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Dark theme (default) */
+    --background: 222 20% 8%;
+    --foreground: 210 20% 92%;
+    --card: 222 18% 11%;
+    --card-foreground: 210 20% 92%;
+    --popover: 222 18% 13%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 186 72% 42%;
+    --primary-foreground: 222 20% 8%;
+    --secondary: 222 16% 16%;
+    --secondary-foreground: 210 14% 72%;
+    --muted: 222 16% 14%;
+    --muted-foreground: 215 12% 48%;
+    --accent: 222 16% 18%;
+    --accent-foreground: 210 20% 92%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 16% 18%;
+    --input: 222 16% 16%;
+    --ring: 186 72% 42%;
+    --chart-1: 186 72% 42%;
+    --chart-2: 200 65% 55%;
+    --chart-3: 40 85% 58%;
+    --chart-4: 270 55% 62%;
+    --chart-5: 0 72% 55%;
+    --radius: 0.75rem;
+    --positive: 142 70% 45%;
+    --negative: 0 72% 55%;
+    --sidebar-background: 222 22% 7%;
+    --sidebar-foreground: 210 14% 72%;
+    --sidebar-primary: 186 72% 42%;
+    --sidebar-primary-foreground: 222 20% 8%;
+    --sidebar-accent: 222 16% 14%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 222 16% 15%;
+    --sidebar-ring: 186 72% 42%;
+  }
+
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 220 25% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+    --primary: 186 60% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 93%;
+    --secondary-foreground: 220 25% 10%;
+    --muted: 220 16% 93%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 220 16% 93%;
+    --accent-foreground: 220 25% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 186 60% 36%;
+    --chart-1: 186 60% 36%;
+    --chart-2: 200 41% 58%;
+    --chart-3: 40 85% 55%;
+    --chart-4: 280 55% 55%;
+    --chart-5: 0 72% 51%;
+    --positive: 142 60% 38%;
+    --negative: 0 72% 51%;
+    --sidebar-background: 220 22% 94%;
+    --sidebar-foreground: 220 25% 20%;
+    --sidebar-primary: 186 60% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 16% 90%;
+    --sidebar-accent-foreground: 220 25% 10%;
+    --sidebar-border: 220 13% 85%;
+    --sidebar-ring: 186 60% 36%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+/* Premium button micro-interactions */
+button:not(:disabled), [role="button"]:not(:disabled) {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+button:not(:disabled):hover, [role="button"]:not(:disabled):hover {
+  transform: translateY(-1px) scale(1.015);
+}
+button:not(:disabled):active, [role="button"]:not(:disabled):active {
+  transform: translateY(0px) scale(0.97);
+  transition: transform 0.07s ease;
+}
+
+/* Card hover elevation */
+.card-hover {
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 8px 30px -6px hsl(var(--primary) / 0.12), 0 4px 12px -4px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
