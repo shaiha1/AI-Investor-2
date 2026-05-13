@@ -8,7 +8,7 @@
  *   // analysis.ticker, analysis.setTicker, analysis.handleSubmit, ...
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import {
   buildCacheKey,
@@ -73,10 +73,21 @@ export function useStockAnalysis() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [addedToPortfolio, setAddedToPortfolio] = useState(false);
 
+  // ── Refs
+  const abortRef = useRef(null);   // AbortController for in-flight requests
+  const isRunningRef = useRef(false); // double-submit guard
+
   // ── Derived
   const creditsBalance = subscription?.creditsBalance ?? 0;
   const isLowCredits = creditsBalance > 0 && creditsBalance <= 5;
   const isOutOfCredits = creditsBalance <= 0;
+
+  // ── Abort in-flight requests on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   // ── Init: load user + subscription + report history
   useEffect(() => {
@@ -112,6 +123,12 @@ export function useStockAnalysis() {
   const runAnalysis = useCallback(
     async ({ overrideForceRefresh = false } = {}) => {
       if (!ticker.trim()) return;
+      if (isRunningRef.current) return; // double-submit guard
+      isRunningRef.current = true;
+
+      // Cancel any previous in-flight request
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
 
       const effectiveForceRefresh = overrideForceRefresh || forceRefresh;
       const hasScenarios = selectedScenarios.length > 0 || customThesis.trim().length > 0;
@@ -342,19 +359,14 @@ export function useStockAnalysis() {
           res.updownPct = ((res.priceTarget - res.currentPrice) / res.currentPrice) * 100;
         }
 
-        setResult(res);
-        setCacheHit({ fromCache: false, cachedAt: new Date().toISOString() });
-
-        // Deduct credits first (fail gracefully)
+        // Deduct credits before showing result — if this fails, don't surface the report
         if (subscription) {
           const newBalance = Math.max(0, (subscription.creditsBalance ?? 0) - actionCost);
           const newTotalUsed = (subscription.totalCreditsUsed ?? 0) + actionCost;
-          try {
-            await base44.entities.UserSubscription.update(subscription.id, {
-              creditsBalance: newBalance,
-              totalCreditsUsed: newTotalUsed,
-            });
-          } catch {}
+          await base44.entities.UserSubscription.update(subscription.id, {
+            creditsBalance: newBalance,
+            totalCreditsUsed: newTotalUsed,
+          });
           setSubscription((prev) => ({ ...prev, creditsBalance: newBalance, totalCreditsUsed: newTotalUsed }));
           base44.entities.CreditTransaction.create({
             userId: subscription.userId,
@@ -365,6 +377,9 @@ export function useStockAnalysis() {
             metadata: JSON.stringify({ ticker: tickerUpper, timeframe }),
           }).catch(() => {});
         }
+
+        setResult(res);
+        setCacheHit({ fromCache: false, cachedAt: new Date().toISOString() });
 
         // Save report
         const saved = await base44.entities.Report.create({
@@ -383,7 +398,7 @@ export function useStockAnalysis() {
 
         // Save AnalysisCache (non-blocking)
         const scenariosKey = JSON.stringify([...selectedScenarios].sort());
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         base44.entities.AnalysisCache.create({
           ticker: tickerUpper,
           timeframe,
@@ -415,6 +430,7 @@ export function useStockAnalysis() {
         setLoadingStep(null);
         setIsLoading(false);
         setForceRefresh(false);
+        isRunningRef.current = false;
       }
     },
     [ticker, timeframe, selectedScenarios, customThesis, forceRefresh, subscription]

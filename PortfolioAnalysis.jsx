@@ -90,14 +90,11 @@ Be specific, cite the actual tickers, use real data where available. Be direct a
       model: "gemini_3_1_pro",
     });
 
-    setAnalysis(res);
-    setLoading(false);
-
-    // Deduct credits + log transaction
+    // Deduct credits before showing result — if this fails, don't show analysis
     if (subscription) {
       const newBalance = Math.max(0, creditsBalance - PORTFOLIO_ANALYSIS_COST);
       const newTotalUsed = (subscription.totalCreditsUsed ?? 0) + PORTFOLIO_ANALYSIS_COST;
-      base44.entities.UserSubscription.update(subscription.id, {
+      await base44.entities.UserSubscription.update(subscription.id, {
         creditsBalance: newBalance,
         totalCreditsUsed: newTotalUsed,
       });
@@ -111,6 +108,9 @@ Be specific, cite the actual tickers, use real data where available. Be direct a
         metadata: JSON.stringify({ holdingsCount: holdings.length }),
       }).catch(() => {});
     }
+
+    setAnalysis(res);
+    setLoading(false);
   };
 
   return (
