@@ -11,7 +11,8 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Activity, Briefcase, Plus, User, RefreshCw } from "lucide-react";
+import { Activity, Briefcase, Plus, User, RefreshCw, Clock } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -141,6 +142,8 @@ export default function Dashboard() {
                   onSubmit={handleSubmit}
                   isLoading={isLoading}
                   isOutOfCredits={isOutOfCredits}
+                  creditCost={selectedScenarios.length > 0 || customThesis ? 2 : 1}
+                  creditsBalance={creditsBalance}
                 />
                 <ScenarioInputs
                   selectedScenarios={selectedScenarios}
@@ -191,6 +194,23 @@ export default function Dashboard() {
                 animate={{ opacity: 1 }}
                 className="space-y-4"
               >
+                {/* Data age banner — warn when result is from cache */}
+                {cacheHit?.fromCache && cacheHit?.cachedAt && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/25 bg-amber-500/8 text-amber-400 text-xs">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Cached analysis from{" "}
+                      {formatDistanceToNow(new Date(cacheHit.cachedAt), { addSuffix: true })} · Market data is live ·{" "}
+                    </span>
+                    <button
+                      onClick={handleRefreshAnalysis}
+                      className="underline font-semibold hover:text-amber-300 transition-colors"
+                    >
+                      Refresh analysis
+                    </button>
+                  </div>
+                )}
+
                 {/* Price Target Card — now includes bull/base/bear */}
                 <PriceTargetCard
                   priceTarget={result.priceTarget}

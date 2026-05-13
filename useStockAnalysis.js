@@ -124,6 +124,13 @@ export function useStockAnalysis() {
     async ({ overrideForceRefresh = false } = {}) => {
       if (!ticker.trim()) return;
       if (isRunningRef.current) return; // double-submit guard
+
+      // Ticker validation — block injection and invalid symbols
+      const TICKER_RE = /^[A-Za-z]{1,6}(\.[A-Za-z]{1,2})?$/;
+      if (!TICKER_RE.test(ticker.trim())) {
+        setError("Invalid ticker symbol. Use 1–6 letters (e.g. AAPL, BRK.B).");
+        return;
+      }
       isRunningRef.current = true;
 
       // Cancel any previous in-flight request
@@ -255,9 +262,15 @@ export function useStockAnalysis() {
         const researchBlock = buildResearchBlock(cache, liveStock);
         const companyContextBlock = buildCompanyContext(liveStock, liveNews);
         const technicalBlock = buildTechnicalBlock(liveTechnical);
+        // Sanitize customThesis to prevent prompt injection
+        const sanitizedThesis = (customThesis || "")
+          .replace(/[\r\n]+/g, " ")
+          .replace(/[^\w\s.,;:!?()\-'"@%$]/g, "")
+          .slice(0, 500);
+
         const scenarioBlock =
-          selectedScenarios.length > 0 || customThesis
-            ? `\nINVESTOR MACRO SCENARIOS:\n${selectedScenarios.map((s) => `- ${s}`).join("\n")}${customThesis ? `\nCustom Thesis: "${customThesis}"` : ""}\n`
+          selectedScenarios.length > 0 || sanitizedThesis
+            ? `\nINVESTOR MACRO SCENARIOS:\n${selectedScenarios.map((s) => `- ${s}`).join("\n")}${sanitizedThesis ? `\nCustom Thesis: "${sanitizedThesis}"` : ""}\n`
             : "";
 
         const {

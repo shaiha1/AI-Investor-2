@@ -1,17 +1,20 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Loader2, Circle, RefreshCw } from "lucide-react";
+import { CheckCircle2, Loader2, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: "market", label: "Loading market data" },
-  { id: "cache", label: "Checking research cache" },
-  { id: "applying", label: "Applying company research" },
-  { id: "generating", label: "Generating analyst report" },
+  { id: "market",     label: "Fetching live price & market data",        sub: "Finnhub · Yahoo Finance" },
+  { id: "cache",      label: "Loading institutional research cache",      sub: "SEC · FMP · Finnhub" },
+  { id: "applying",   label: "Applying filings & earnings context",       sub: "10-K · 10-Q · Transcripts" },
+  { id: "generating", label: "Generating analyst report",                 sub: "AI model · structured output" },
 ];
 
-// Optionally show a 5th step only when refreshing cache
-const REFRESH_STEP = { id: "refreshing", label: "Refreshing deep research sources" };
+const REFRESH_STEP = {
+  id: "refreshing",
+  label: "Refreshing deep research sources",
+  sub: "SEC EDGAR · FMP · earnings data",
+};
 
 export default function LoadingSteps({ currentStep, isRefreshingCache }) {
   const steps = isRefreshingCache
@@ -33,8 +36,8 @@ export default function LoadingSteps({ currentStep, isRefreshingCache }) {
           const isPending = idx > currentIndex;
 
           return (
-            <div key={step.id} className="flex items-center gap-3">
-              <div className="shrink-0 h-5 w-5 flex items-center justify-center">
+            <div key={step.id} className="flex items-start gap-3">
+              <div className="shrink-0 h-5 w-5 flex items-center justify-center mt-0.5">
                 {isDone && <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
                 {isActive && (
                   <Loader2 className={cn(
@@ -45,17 +48,25 @@ export default function LoadingSteps({ currentStep, isRefreshingCache }) {
                 {isPending && <Circle className="h-4 w-4 text-muted-foreground/30" />}
               </div>
               <AnimatePresence mode="wait">
-                <span className={cn(
-                  "text-sm transition-colors",
-                  isDone && "text-muted-foreground line-through",
-                  isActive && (step.id === "refreshing" ? "text-amber-400 font-medium" : "text-foreground font-medium"),
-                  isPending && "text-muted-foreground/40"
-                )}>
-                  {step.label}
-                  {step.id === "refreshing" && isActive && (
-                    <span className="ml-2 text-xs text-amber-400/70">(this may take a moment)</span>
+                <div>
+                  <span className={cn(
+                    "text-sm transition-colors",
+                    isDone && "text-muted-foreground line-through",
+                    isActive && (step.id === "refreshing" ? "text-amber-400 font-medium" : "text-foreground font-medium"),
+                    isPending && "text-muted-foreground/40"
+                  )}>
+                    {step.label}
+                  </span>
+                  {isActive && step.sub && (
+                    <p className={cn(
+                      "text-[10px] mt-0.5",
+                      step.id === "refreshing" ? "text-amber-400/60" : "text-muted-foreground/50"
+                    )}>
+                      {step.sub}
+                      {step.id === "refreshing" && " — this may take a moment"}
+                    </p>
                   )}
-                </span>
+                </div>
               </AnimatePresence>
             </div>
           );

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Download, Check, Share2, Twitter, Linkedin, Link } from "lucide-react";
+import { Copy, Download, Check, Share2, Twitter, Linkedin, Link, FileText } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { jsPDF } from "jspdf";
 
 export default function ReportActions({ reportContent, ticker, recommendation, priceTarget, updownPct }) {
   const [copied, setCopied] = useState(false);
@@ -27,6 +28,71 @@ export default function ReportActions({ reportContent, ticker, recommendation, p
     a.download = `${ticker?.replace(/\s+/g, "_") || "report"}_equity_research.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const margin = 48;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    const addPage = () => {
+      doc.addPage();
+      y = margin;
+    };
+
+    const checkY = (lineHeight) => {
+      if (y + lineHeight > pageHeight - margin) addPage();
+    };
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${ticker || "Stock"} — Equity Research Report`, margin, y);
+    y += 28;
+
+    // Subtitle
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120, 120, 120);
+    doc.text(
+      `${recommendation || ""} · Price Target: $${priceTarget ?? "—"} · ${updownPct != null ? (updownPct >= 0 ? "+" : "") + updownPct.toFixed(1) + "%" : ""} · Generated ${new Date().toLocaleDateString()}`,
+      margin,
+      y
+    );
+    y += 20;
+    doc.setTextColor(0, 0, 0);
+
+    // Divider
+    doc.setDrawColor(220, 220, 220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 16;
+
+    // Body — strip markdown formatting
+    const plain = (reportContent || "")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/^[-*]\s+/gm, "• ")
+      .replace(/\n{3,}/g, "\n\n");
+
+    const paragraphs = plain.split("\n\n");
+    doc.setFontSize(9.5);
+
+    for (const para of paragraphs) {
+      const lines = doc.splitTextToSize(para.trim(), maxWidth);
+      for (const line of lines) {
+        checkY(13);
+        doc.text(line, margin, y);
+        y += 13;
+      }
+      y += 6;
+    }
+
+    doc.save(`${ticker?.replace(/\s+/g, "_") || "report"}_equity_research.pdf`);
   };
 
   const shareText = () => {
@@ -68,9 +134,13 @@ export default function ReportActions({ reportContent, ticker, recommendation, p
         {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copied!" : "Copy"}
       </Button>
+      <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-1.5 h-8 text-xs border-border">
+        <FileText className="h-3.5 w-3.5" />
+        PDF
+      </Button>
       <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5 h-8 text-xs border-border">
         <Download className="h-3.5 w-3.5" />
-        Download
+        .md
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

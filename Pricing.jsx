@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Check, Zap, Infinity as InfinityIcon, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
-const PAYPAL_CLIENT_ID = "AfdWBeibcS-mvwVnvT4Xn36ozL3NhCGqlCepPFgqhiMv-d1oEFdmH8mGtSyTmmTjEx07QBnIo3kAwH3Y";
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
 const packs = [
   {

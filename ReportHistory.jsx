@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
-import { TrendingUp, TrendingDown, MinusCircle, Clock } from "lucide-react";
+import { Clock, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const recDot = {
@@ -16,9 +16,14 @@ const recLabel = {
 };
 
 export default function ReportHistory({ reports, selectedId, onSelect }) {
+  const [query, setQuery] = useState("");
+
+  const filtered = query.trim()
+    ? reports.filter((r) => r.ticker?.toUpperCase().includes(query.trim().toUpperCase()))
+    : reports;
+
   return (
     <div className="flex flex-col h-full">
-      {/* Section label */}
       <div className="px-3 pt-4 pb-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Recent Reports
@@ -30,15 +35,39 @@ export default function ReportHistory({ reports, selectedId, onSelect }) {
         </p>
       </div>
 
+      {reports.length > 0 && (
+        <div className="px-3 pb-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-sidebar-foreground/40 pointer-events-none" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter by ticker…"
+              className="w-full pl-7 pr-6 py-1.5 text-[11px] bg-sidebar-accent/50 border border-sidebar-border rounded-md text-sidebar-foreground placeholder:text-sidebar-foreground/30 focus:outline-none focus:ring-1 focus:ring-sidebar-primary/40"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
-        {reports.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
             <Clock className="h-6 w-6 text-sidebar-foreground/20 mb-2" />
-            <p className="text-xs text-sidebar-foreground/40">No reports yet</p>
+            <p className="text-xs text-sidebar-foreground/40">
+              {query ? `No reports for "${query.toUpperCase()}"` : "No reports yet"}
+            </p>
           </div>
         ) : (
           <ul className="space-y-0.5 px-2 pb-2">
-            {reports.map((r) => (
+            {filtered.map((r) => (
               <li key={r.id}>
                 <button
                   onClick={() => onSelect(r)}

@@ -4,6 +4,60 @@
  * Extracted from Dashboard.jsx to keep the component clean.
  */
 
+import { z } from "zod";
+
+// ─── Zod schemas for cached JSON fields ──────────────────────────────────────
+
+const FinancialContextSchema = z.object({
+  sourceUsed: z.string().optional(),
+  sourceConfidence: z.string().optional(),
+}).passthrough();
+
+const EarningsContextSchema = z.object({
+  sourceUsed: z.string().optional(),
+}).passthrough();
+
+const ValuationMetricsSchema = z.object({
+  peRatio: z.number().nullable().optional(),
+  evToEbitda: z.number().nullable().optional(),
+  evToSales: z.number().nullable().optional(),
+  priceToSales: z.number().nullable().optional(),
+  priceToBook: z.number().nullable().optional(),
+  pegRatio: z.number().nullable().optional(),
+  roe: z.number().nullable().optional(),
+  roic: z.number().nullable().optional(),
+  debtToEquity: z.number().nullable().optional(),
+  dividendYield: z.number().nullable().optional(),
+}).passthrough();
+
+const FinancialStatementPeriodSchema = z.object({
+  date: z.string().optional(),
+}).passthrough();
+
+const FinancialStatementsSchema = z.object({
+  income: z.array(FinancialStatementPeriodSchema).optional(),
+  cashFlow: z.array(FinancialStatementPeriodSchema).optional(),
+  balance: z.array(FinancialStatementPeriodSchema).optional(),
+}).passthrough();
+
+const FilingSchema = z.object({
+  type: z.string().optional(),
+  date: z.string().optional(),
+}).passthrough();
+
+const SourceCoverageSchema = z.record(
+  z.union([z.string(), z.object({ status: z.string().optional(), sourceUsed: z.string().optional() }).passthrough()])
+);
+
+function safeParse(schema, json) {
+  try {
+    const raw = JSON.parse(json);
+    return schema.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 // ─── Price helpers ───────────────────────────────────────────────────────────
 
 export const roundPriceTarget = (price) => {
@@ -48,28 +102,28 @@ P/E Ratio: ${liveStock.peRatio ? liveStock.peRatio.toFixed(1) : "N/A"}`);
 Score: ${cache.sourceConfidenceScore ?? 0}/100
 Missing sources: ${(cache.missingSources || []).join(", ") || "None"}`);
 
-  if (cache.financialStatementContextJson) {
-    try {
-      const fsCtx = JSON.parse(cache.financialStatementContextJson);
-      if (fsCtx?.sourceUsed && fsCtx.sourceUsed !== "None") {
-        add(
-          `NORMALIZED FINANCIAL STATEMENT CONTEXT (Source: ${fsCtx.sourceUsed}, confidence: ${fsCtx.sourceConfidence})`,
-          JSON.stringify(fsCtx, null, 2)
-        );
-      }
-    } catch {}
+  const fsCtx = cache.financialStatementContextJson
+    ? safeParse(FinancialContextSchema, cache.financialStatementContextJson)
+    : null;
+  if (fsCtx?.sourceUsed && fsCtx.sourceUsed !== "None") {
+    add(
+      `NORMALIZED FINANCIAL STATEMENT CONTEXT (Source: ${fsCtx.sourceUsed}, confidence: ${fsCtx.sourceConfidence})`,
+      JSON.stringify(fsCtx, null, 2)
+    );
   }
 
-  if (cache.earningsContextJson) {
-    try {
-      const ec = JSON.parse(cache.earningsContextJson);
-      add(`NORMALIZED EARNINGS CONTEXT (Source: ${ec.sourceUsed || "None"})`, JSON.stringify(ec, null, 2));
-    } catch {}
+  const ec = cache.earningsContextJson
+    ? safeParse(EarningsContextSchema, cache.earningsContextJson)
+    : null;
+  if (ec) {
+    add(`NORMALIZED EARNINGS CONTEXT (Source: ${ec.sourceUsed || "None"})`, JSON.stringify(ec, null, 2));
   }
 
-  if (cache.valuationMetricsJson) {
-    try {
-      const vm = JSON.parse(cache.valuationMetricsJson);
+  const vm = cache.valuationMetricsJson
+    ? safeParse(ValuationMetricsSchema, cache.valuationMetricsJson)
+    : null;
+  if (vm !== null) {
+    {
       const lines = [];
       if (vm.peRatio != null) lines.push(`P/E TTM: ${vm.peRatio?.toFixed?.(2) ?? vm.peRatio}`);
       if (vm.evToEbitda != null) lines.push(`EV/EBITDA: ${vm.evToEbitda?.toFixed?.(2) ?? vm.evToEbitda}`);
@@ -82,43 +136,43 @@ Missing sources: ${(cache.missingSources || []).join(", ") || "None"}`);
       if (vm.debtToEquity != null) lines.push(`Debt/Equity: ${vm.debtToEquity?.toFixed?.(2) ?? vm.debtToEquity}`);
       if (vm.dividendYield != null) lines.push(`Div Yield: ${(vm.dividendYield * 100)?.toFixed?.(2) ?? vm.dividendYield}%`);
       if (lines.length) add("VALUATION METRICS (Source: FMP)", lines.join(" | "));
-    } catch {}
+    }
   }
 
-  if (cache.financialStatementsJson) {
-    try {
-      const fs = JSON.parse(cache.financialStatementsJson);
-      if (fs.income?.length) {
-        const rows = fs.income
-          .slice(0, 4)
-          .map(
-            (s) =>
-              `${s.date}: Rev $${(s.revenue / 1e9)?.toFixed(2)}B | Op Inc $${(s.operatingIncome / 1e9)?.toFixed(2)}B | Net Inc $${(s.netIncome / 1e9)?.toFixed(2)}B | EPS $${s.eps} | GM ${(s.grossMargin * 100)?.toFixed(1)}% | OM ${(s.operatingMargin * 100)?.toFixed(1)}%`
-          )
-          .join("\n");
-        add("INCOME STATEMENTS (Source: FMP, last 4 periods)", rows);
-      }
-      if (fs.cashFlow?.length) {
-        const rows = fs.cashFlow
-          .slice(0, 4)
-          .map(
-            (s) =>
-              `${s.date}: OCF $${(s.operatingCashFlow / 1e9)?.toFixed(2)}B | FCF $${(s.freeCashFlow / 1e9)?.toFixed(2)}B | CapEx $${(s.capex / 1e9)?.toFixed(2)}B`
-          )
-          .join("\n");
-        add("CASH FLOW STATEMENTS (Source: FMP, last 4 periods)", rows);
-      }
-      if (fs.balance?.length) {
-        const rows = fs.balance
-          .slice(0, 4)
-          .map(
-            (s) =>
-              `${s.date}: Assets $${(s.totalAssets / 1e9)?.toFixed(2)}B | Equity $${(s.totalEquity / 1e9)?.toFixed(2)}B | Debt $${(s.totalDebt / 1e9)?.toFixed(2)}B | Cash $${(s.cash / 1e9)?.toFixed(2)}B`
-          )
-          .join("\n");
-        add("BALANCE SHEET (Source: FMP, last 4 periods)", rows);
-      }
-    } catch {}
+  const fs = cache.financialStatementsJson
+    ? safeParse(FinancialStatementsSchema, cache.financialStatementsJson)
+    : null;
+  if (fs) {
+    if (fs.income?.length) {
+      const rows = fs.income
+        .slice(0, 4)
+        .map(
+          (s) =>
+            `${s.date}: Rev $${(s.revenue / 1e9)?.toFixed(2)}B | Op Inc $${(s.operatingIncome / 1e9)?.toFixed(2)}B | Net Inc $${(s.netIncome / 1e9)?.toFixed(2)}B | EPS $${s.eps} | GM ${(s.grossMargin * 100)?.toFixed(1)}% | OM ${(s.operatingMargin * 100)?.toFixed(1)}%`
+        )
+        .join("\n");
+      add("INCOME STATEMENTS (Source: FMP, last 4 periods)", rows);
+    }
+    if (fs.cashFlow?.length) {
+      const rows = fs.cashFlow
+        .slice(0, 4)
+        .map(
+          (s) =>
+            `${s.date}: OCF $${(s.operatingCashFlow / 1e9)?.toFixed(2)}B | FCF $${(s.freeCashFlow / 1e9)?.toFixed(2)}B | CapEx $${(s.capex / 1e9)?.toFixed(2)}B`
+        )
+        .join("\n");
+      add("CASH FLOW STATEMENTS (Source: FMP, last 4 periods)", rows);
+    }
+    if (fs.balance?.length) {
+      const rows = fs.balance
+        .slice(0, 4)
+        .map(
+          (s) =>
+            `${s.date}: Assets $${(s.totalAssets / 1e9)?.toFixed(2)}B | Equity $${(s.totalEquity / 1e9)?.toFixed(2)}B | Debt $${(s.totalDebt / 1e9)?.toFixed(2)}B | Cash $${(s.cash / 1e9)?.toFixed(2)}B`
+        )
+        .join("\n");
+      add("BALANCE SHEET (Source: FMP, last 4 periods)", rows);
+    }
   }
 
   add("REVENUE GROWTH ANALYSIS (Source: FMP)", cache.revenueGrowthSummary);
@@ -232,10 +286,9 @@ Fibonacci Retracement (from swing low to swing high):
 // ─── Source coverage helpers ──────────────────────────────────────────────────
 
 export const parseCoverage = (cache) => {
-  let sourceCoverage = {};
-  try {
-    sourceCoverage = cache?.sourceCoverageJson ? JSON.parse(cache.sourceCoverageJson) : {};
-  } catch {}
+  const sourceCoverage = cache?.sourceCoverageJson
+    ? (safeParse(SourceCoverageSchema, cache.sourceCoverageJson) ?? {})
+    : {};
 
   const covStatus = (k) => {
     const e = sourceCoverage[k];
@@ -249,16 +302,12 @@ export const parseCoverage = (cache) => {
     return e.sourceUsed || null;
   };
 
-  let fsContext = null,
-    earningsContext = null;
-  try {
-    fsContext = cache?.financialStatementContextJson
-      ? JSON.parse(cache.financialStatementContextJson)
-      : null;
-  } catch {}
-  try {
-    earningsContext = cache?.earningsContextJson ? JSON.parse(cache.earningsContextJson) : null;
-  } catch {}
+  const fsContext = cache?.financialStatementContextJson
+    ? safeParse(FinancialContextSchema, cache.financialStatementContextJson)
+    : null;
+  const earningsContext = cache?.earningsContextJson
+    ? safeParse(EarningsContextSchema, cache.earningsContextJson)
+    : null;
 
   const fsSourceUsed =
     fsContext?.sourceUsed && fsContext.sourceUsed !== "None" ? fsContext.sourceUsed : null;
@@ -295,12 +344,12 @@ export const parseCoverage = (cache) => {
     latestTenQDate = "",
     latestEightKDate = "";
   if (cache?.secFilingsJson) {
-    try {
-      const filings = JSON.parse(cache.secFilingsJson);
+    const filings = safeParse(z.array(FilingSchema), cache.secFilingsJson);
+    if (filings) {
       latestTenKDate = filings.find((f) => f.type === "10-K")?.date || "";
       latestTenQDate = filings.find((f) => f.type === "10-Q")?.date || "";
       latestEightKDate = filings.find((f) => f.type === "8-K")?.date || "";
-    } catch {}
+    }
   }
 
   return {

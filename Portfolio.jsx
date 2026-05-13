@@ -78,6 +78,11 @@ export default function Portfolio() {
     setHoldings((prev) => prev.filter((h) => h.id !== id));
   };
 
+  const handleBulkRemove = async (ids) => {
+    await Promise.all(ids.map((id) => base44.entities.PortfolioHolding.delete(id)));
+    setHoldings((prev) => prev.filter((h) => !ids.includes(h.id)));
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -114,6 +119,7 @@ export default function Portfolio() {
             liveData={liveData}
             loadingTickers={loadingTickers}
             onRemove={handleRemove}
+            onBulkRemove={handleBulkRemove}
             onAddManual={() => setShowAddModal(true)}
           />
         </div>
