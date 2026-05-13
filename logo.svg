@@ -1,0 +1,47 @@
+<svg width="200" height="200" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Hexagon background -->
+  <path d="M32 3 L57 17.5 L57 46.5 L32 61 L7 46.5 L7 17.5 Z"
+    fill="rgba(99,102,241,0.12)" stroke="url(#grad)" stroke-width="1.5"/>
+
+  <!-- Candlestick bar 1 (bear) -->
+  <rect x="14" y="38" width="5" height="10" rx="1.2" fill="#f43f5e"/>
+  <line x1="16.5" y1="35" x2="16.5" y2="38" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="16.5" y1="48" x2="16.5" y2="51" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Candlestick bar 2 (bull) -->
+  <rect x="23" y="31" width="5" height="14" rx="1.2" fill="url(#grad)"/>
+  <line x1="25.5" y1="27" x2="25.5" y2="31" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="25.5" y1="45" x2="25.5" y2="48" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Candlestick bar 3 (bull) -->
+  <rect x="32" y="22" width="5" height="22" rx="1.2" fill="url(#grad)"/>
+  <line x1="34.5" y1="18" x2="34.5" y2="22" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="34.5" y1="44" x2="34.5" y2="47" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Candlestick bar 4 (bull, tallest) -->
+  <rect x="41" y="15" width="5" height="28" rx="1.2" fill="url(#grad)" filter="url(#glow)"/>
+  <line x1="43.5" y1="11" x2="43.5" y2="15" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="43.5" y1="43" x2="43.5" y2="46" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Trend line -->
+  <polyline points="14,42 24,34 33,27 43.5,16"
+    stroke="url(#grad)" stroke-width="1.8"
+    stroke-linecap="round" stroke-linejoin="round"
+    stroke-dasharray="2 2" opacity="0.6"/>
+
+  <!-- AI spark -->
+  <circle cx="50" cy="14" r="5" fill="#a855f7" filter="url(#glow)"/>
+  <text x="50" y="18" text-anchor="middle" font-size="6" font-weight="800"
+    font-family="system-ui,sans-serif" fill="#ffffff">AI</text>
+</svg>
